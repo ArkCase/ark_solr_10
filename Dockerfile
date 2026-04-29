@@ -56,6 +56,9 @@ LABEL ORG="ArkCase LLC" \
       VERSION="${VER}" \
       IMAGE_SOURCE="https://github.com/ArkCase/ark_solr"
 
+ENV SOLR_MAJOR_VER="${VER%%.*}"
+ENV SOLR_MINOR_VER="${VER%.*}"
+
 ENV HOME_DIR="${BASE_DIR}/${PKG}"
 ENV SERVER_DIR="${HOME_DIR}/server"
 ENV SERVER_LIB_DIR="${SERVER_DIR}/lib"

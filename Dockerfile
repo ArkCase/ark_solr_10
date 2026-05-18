@@ -21,7 +21,7 @@ ARG VER="10.0.0"
 ARG JAVA="21"
 
 ARG KEYS="https://downloads.apache.org/solr/KEYS"
-ARG SRC="https://archive.apache.org/dist/solr/solr/${VER}/solr-${VER}.tgz"
+ARG SRC="https://dlcdn.apache.org/solr/solr/${VER}/solr-${VER}.tgz"
 
 ARG BASE_REGISTRY="${PUBLIC_REGISTRY}"
 ARG BASE_REPO="arkcase/base-java"

@@ -112,8 +112,7 @@ RUN rm -rf /tmp/* && \
     chown root "${HOME_DIR}/bin"
 
 COPY --chown=root:root --chmod=0755 fix-jar-sum /usr/local/bin/
-COPY --chown=root:root --chmod=0755 CVE /CVE
-RUN apply-fixes /CVE
+RUN --mount=type=bind,source=CVE,target=/CVE apply-fixes /CVE
 
 USER "${APP_USER}"
 WORKDIR "${HOME_DIR}"

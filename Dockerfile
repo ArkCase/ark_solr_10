@@ -13,6 +13,7 @@
 ###########################################################################################################
 
 ARG FIPS=""
+ARG PRIVATE_REGISTRY
 ARG PUBLIC_REGISTRY="public.ecr.aws"
 ARG ARCH="amd64"
 ARG OS="linux"
@@ -20,14 +21,21 @@ ARG PKG="solr"
 ARG VER="10.0.0"
 ARG JAVA="21"
 
-ARG KEYS="https://downloads.apache.org/solr/KEYS"
-ARG SRC="https://dlcdn.apache.org/solr/solr/${VER}/solr-${VER}.tgz"
-
 ARG BASE_REGISTRY="${PUBLIC_REGISTRY}"
 ARG BASE_REPO="arkcase/base-java"
 ARG BASE_VER="24.04"
 ARG BASE_VER_PFX=""
 ARG BASE_IMG="${BASE_REGISTRY}/${BASE_REPO}${FIPS}:${BASE_VER_PFX}${BASE_VER}"
+
+ARG SOLR_REG="${PRIVATE_REGISTRY}"
+ARG SOLR_REPO="arkcase/rebuild-solr-10"
+ARG SOLR_VER="${VER}"
+ARG SOLR_VER_PFX="${BASE_VER_PFX}"
+ARG SOLR_IMG="${SOLR_REG}/${SOLR_REPO}:${SOLR_VER_PFX}${SOLR_VER}"
+
+FROM "${SOLR_IMG}" AS solr-src
+
+ARG BASE_IMG
 
 FROM "${BASE_IMG}"
 
@@ -84,9 +92,8 @@ RUN groupadd --system --gid "${APP_GID}" "${APP_GROUP}" && \
 #
 # Install Solr
 #
-RUN verified-download --keys "${KEYS}" "${SRC}" "/solr.tar.gz" && \
-    tar --strip-components=1 -C "${HOME_DIR}" -xzvf "/solr.tar.gz" && \
-    rm -rf "/solr.tar.gz"
+RUN --mount=type=cache,from=solr-src,target=/solr-src,ro=true \
+    tar --strip-components=1 -C "${HOME_DIR}" -xzvf "/solr-src/solr-${VER}.tgz"
 
 #
 # Add extra stuff & fix permissions

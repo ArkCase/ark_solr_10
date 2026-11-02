@@ -55,7 +55,8 @@ RUN set-java "${JAVA}" && \
     apt-get -y install \
         lsof \
       && \
-    apt-get clean
+    apt-get clean && \
+    rm -frv /var/lib/apt/lists/*
 
 LABEL ORG="ArkCase LLC" \
       MAINTAINER="Armedia Devops Team <devops@armedia.com>" \
@@ -88,37 +89,24 @@ RUN groupadd --system --gid "${APP_GID}" "${APP_GROUP}" && \
 # Build Solr
 #################
 
-#
-# Install Solr
-#
-RUN --mount=type=cache,from=solr-src,target=/solr-src,ro=true \
-    tar --strip-components=1 -C "${HOME_DIR}" -xzvf "/solr-src/solr-${VER}.tgz"
-
-#
-# Add extra stuff & fix permissions
-#
-RUN mkdir -p "${LOGS_DIR}" && \
-    chown -R "${APP_USER}:${APP_GROUP}" "${HOME_DIR}" "${DATA_DIR}" && \
-    chmod -R u=rwX,g=rwX,o= "${HOME_DIR}" "${DATA_DIR}"
-
-COPY --chown=root:root --chmod=0755 solrpass /usr/local/bin
-
-#################
-# Configure Solr
-#################
-
 ENV INIT_DIR="${BASE_DIR}/init"
 ENV CONF_DIR="${SERVER_DIR}/solr/configsets"
 
-RUN rm -rf "${CONF_DIR}/sample_techproducts_configs"
-
-RUN rm -rf /tmp/* && \
-    chown -R "${APP_USER}:${APP_GROUP}" "${BASE_DIR}" && \
-    chmod -R "u=rwX,g=rX,o=" "${BASE_DIR}" && \
+#
+# Install Solr, configure it, and leave it ready for work
+#
+RUN --mount=type=cache,from=solr-src,target=/solr-src,ro=true \
+    --mount=type=bind,target=/src \
+    tar --strip-components=1 -C "${HOME_DIR}" -xzvf "/solr-src/solr-${VER}.tgz" && \
+    mkdir -p "${LOGS_DIR}" && \
+    rm -rf "${CONF_DIR}/sample_techproducts_configs" && \
+    rm -rf /tmp/* && \
+    cp /src/solrpass "${HOME_DIR}/bin" && \
+    chmod 0755 "${HOME_DIR}/bin/solrpass" && \
+    apply-fixes /src/CVE && \
+    chown -R "${APP_USER}:${APP_GROUP}" "${BASE_DIR}" "${HOME_DIR}" "${DATA_DIR}" && \
+    chmod -R u=rwX,g=rwX,o= "${BASE_DIR}" "${HOME_DIR}" "${DATA_DIR}" && \
     chown root "${HOME_DIR}/bin"
-
-COPY --chown=root:root --chmod=0755 fix-jar-sum /usr/local/bin/
-RUN --mount=type=bind,source=CVE,target=/CVE apply-fixes /CVE
 
 USER "${APP_USER}"
 WORKDIR "${HOME_DIR}"

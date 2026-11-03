@@ -51,13 +51,6 @@ ARG APP_GID="${APP_UID}"
 ARG APP_USER="${PKG}"
 ARG APP_GROUP="${APP_USER}"
 
-RUN set-java "${JAVA}" && \
-    apt-get -y install \
-        lsof \
-      && \
-    apt-get clean && \
-    rm -frv /var/lib/apt/lists/*
-
 LABEL ORG="ArkCase LLC" \
       MAINTAINER="Armedia Devops Team <devops@armedia.com>" \
       APP="solr" \
@@ -82,21 +75,19 @@ ENV PATH="${HOME_DIR}/bin:${PATH}"
 ENV LOGS_DIR="${DATA_DIR}/logs"
 ENV SOLR_LOGS_DIR="${LOGS_DIR}"
 
-RUN groupadd --system --gid "${APP_GID}" "${APP_GROUP}" && \
-    useradd  --system --uid "${APP_UID}" --gid "${APP_GROUP}" --groups "${ACM_GROUP}" --create-home --home-dir "${HOME_DIR}" "${APP_USER}"
-
-#################
-# Build Solr
-#################
-
 ENV INIT_DIR="${BASE_DIR}/init"
 ENV CONF_DIR="${SERVER_DIR}/solr/configsets"
 
-#
-# Install Solr, configure it, and leave it ready for work
-#
-RUN --mount=type=cache,from=solr-src,target=/solr-src,ro=true \
-    --mount=type=bind,target=/src \
+RUN --mount=type=bind,target=/src \
+    --mount=type=bind,from=solr-src,target=/solr-src,ro=true \
+    set-java "${JAVA}" && \
+    apt-get -y install \
+        lsof \
+      && \
+    apt-get clean && \
+    rm -frv /var/lib/apt/lists/* && \
+    groupadd --system --gid "${APP_GID}" "${APP_GROUP}" && \
+    useradd  --system --uid "${APP_UID}" --gid "${APP_GROUP}" --groups "${ACM_GROUP}" --create-home --home-dir "${HOME_DIR}" "${APP_USER}" && \
     tar --strip-components=1 -C "${HOME_DIR}" -xzvf "/solr-src/solr-${VER}.tgz" && \
     mkdir -p "${LOGS_DIR}" && \
     rm -rf "${CONF_DIR}/sample_techproducts_configs" && \
@@ -106,13 +97,10 @@ RUN --mount=type=cache,from=solr-src,target=/solr-src,ro=true \
     apply-fixes /src/CVE && \
     chown -R "${APP_USER}:${APP_GROUP}" "${BASE_DIR}" "${HOME_DIR}" "${DATA_DIR}" && \
     chmod -R u=rwX,g=rwX,o= "${BASE_DIR}" "${HOME_DIR}" "${DATA_DIR}" && \
-    chown root "${HOME_DIR}/bin"
+    chown root "${HOME_DIR}/bin" && \
+    install -o root -g root -m 0755 /src/entrypoint /usr/local/bin
 
 USER "${APP_USER}"
 WORKDIR "${HOME_DIR}"
 
 EXPOSE 8983
-
-VOLUME [ "${DATA_DIR}" ]
-
-ENTRYPOINT [ "${HOME_DIR}/bin/solr", "start", "-f", "-cloud" ]

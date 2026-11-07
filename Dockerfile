@@ -98,7 +98,9 @@ RUN --mount=type=bind,target=/src \
     chown -R "${APP_USER}:${APP_GROUP}" "${BASE_DIR}" "${HOME_DIR}" "${DATA_DIR}" && \
     chmod -R u=rwX,g=rwX,o= "${BASE_DIR}" "${HOME_DIR}" "${DATA_DIR}" && \
     chown root "${HOME_DIR}/bin" && \
-    install -o root -g root -m 0755 /src/entrypoint /usr/local/bin
+    install -o root -g root -m 0755 /src/entrypoint /usr/local/bin && \
+    chown -R "${APP_USER}:${APP_GROUP}" "${TEMP_DIR}" && \
+    chmod -R u=rwX,g=rX,o= "${TEMP_DIR}"
 
 USER "${APP_USER}"
 WORKDIR "${HOME_DIR}"
